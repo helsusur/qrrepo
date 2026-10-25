@@ -1,44 +1,239 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>student health password scanner</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Loads library directly from web CDN -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>Student health passport scanner</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-style: italic;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .miku-gif {
+            width: 80px;
+            height: auto;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .codename {
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        #scanner-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+            margin-bottom: 30px;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 450px;
+            height: 300px;
+            border: 1px solid #444;
+            background-color: #111;
+            box-sizing: border-box;
+            overflow: hidden;
+            grid-column: 2;
+        }
+
+        .info-footer {
+            font-family: sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 20px;
+        }
+
+        .buggy-warning {
+            color: #ff3333;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Result window style */
+        #resultContainer {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: calc(100% - 40px);
+            max-width: 450px;
+            background: #222;
+            border: 2px solid #fbff00;
+            padding: 15px;
+            box-sizing: border-box;
+            font-family: monospace;
+            z-index: 1000;
+        }
+
+        .result-title {
+            color: #fbff00;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            border-bottom: 1px dashed #444;
+            padding-bottom: 6px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .data-label {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .data-val {
+            color: #ffffff;
+            text-align: right;
+        }
+
+        .close-btn {
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            background: #fbff00;
+            color: #000;
+            font-weight: bold;
+            text-align: center;
+            border: none;
+            font-family: monospace;
+            cursor: pointer;
+        }
+    </style>
 </head>
-<body style="
-    margin: 0;
-    padding: 0;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-    background-image: url('https://img.magnific.com/free-vector/beautiful-dark-night-space-wallpaper-with-glowing-star_1017-53537.jpg?semt=ais_hybrid&w=740&q=80');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #ffffff;
-">
-    <a href=/qrrepo/manual.html>genrate a EQR code...</a>
-    <!-- Scanner Container -->
-    <div id="scanner" style="width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center;"></div>
+<body>
+
+    <div id="scanner-area">
+        <div style="grid-column: 1;">
+            <h1>𝚌𝚊𝚗 𝚊 𝚂𝚝𝚞𝚍𝚎𝚗𝚝 𝙷𝚎𝚊𝚕𝚝𝚑 𝙿𝚊𝚜𝚜𝚙𝚘𝚛𝚝</h1>
+            
+            <img src="https://media.tenor.com/WblaMue-oPEAAAAm/%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF-hatsune-miku.webp" class="miku-gif" alt="Miku Ohayou">
+            
+            <div class="codename">codename: miku64</div>
+        </div>
+
+        <div id="reader"></div>
+    </div>
+
+    <div class="info-footer">
+        <div>version string: ver_grp10.2.7_mecihc_auth:jharu (yappy)</div>
+        <div>𝙲𝚁𝙴𝙳𝙸𝚃𝚂: 𝚈𝚊𝚝𝚑𝚊𝚛𝚝𝚑 𝚓𝚑𝚊 𝚌𝚕𝚊𝚜𝚜 𝟼 𝙰 𝚐𝚛𝚘𝚞𝚙 𝟼 𝚑𝚊𝚜 𝚖𝚊𝚍𝚎 𝚝𝚑𝚒𝚜 𝚙𝚊𝚛𝚝 𝚘𝚏 𝚝𝚑𝚎 𝚙𝚛𝚘𝚓𝚎𝚌𝚝. Scanner utility: <a href="https://github.com/mebjas/html5-qrcode" style="color: white;">html5-qrcode</a> (C) COPYRIGHT: GROUP 6 OF THE FUTURE FOUNDATION SCHOOL [Prithvijit, Aarav Choudhury and Yatharth Jha]</div>
+        <br>
+        <strong>support helpline from ver:1.10</strong>
+        <div class="buggy-warning">This feature is buggy and unstable. To avoid problems, this feature has been disabled by the Administrator.</div>
+    </div>
+
+    <!-- Medical Record View -->
+    <div id="resultContainer">
+        <div class="result-title">🏥 STUDENT HEALTH RECORD</div>
+        
+        <div class="data-row"><span class="data-label">Name:</span><span class="data-val" id="resName">-</span></div>
+        <div class="data-row"><span class="data-label">Class & Sec:</span><span class="data-val" id="resClass">-</span></div>
+        <div class="data-row"><span class="data-label">Gender:</span><span class="data-val" id="resGender">-</span></div>
+        <div class="data-row"><span class="data-label">Blood Group:</span><span class="data-val" id="resBlood">-</span></div>
+        <div class="data-row"><span class="data-label">Phone:</span><span class="data-val" id="resPhone">-</span></div>
+        <div class="data-row"><span class="data-label">Ailments:</span><span class="data-val" id="resAilments">-</span></div>
+        <div class="data-row"><span class="data-label">Allergies:</span><span class="data-val" id="resAllergies">-</span></div>
+        <div class="data-row"><span class="data-label">Medication:</span><span class="data-val" id="resMedication">-</span></div>
+
+        <div class="close-btn" onclick="closeReport()">🔄 SCAN ANOTHER</div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
-        function unjumbleUrl(text) {
-            return text.split('').reverse().join('');
+        let html5QrCode;
+
+        function startScanner() {
+            if (typeof Html5Qrcode === 'undefined') return;
+
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                async (decodedText) => {
+                    await html5QrCode.stop();
+                    document.getElementById("reader").style.display = "none";
+                    parsePayload(decodedText);
+                },
+                (errorMessage) => {}
+            ).catch(err => {
+                console.error("Camera access error:", err);
+            });
         }
 
-        function onScanSuccess(decodedText) {
-            let realUrl = unjumbleUrl(decodedText);
-            window.open(realUrl, '_blank');
+        async function parsePayload(payload) {
+            try {
+                if (!payload.startsWith("GZIP:")) {
+                    throw new Error("Invalid Health Passport EQR code format!");
+                }
+
+                const flipped = payload.substring(5);
+                const base64Compressed = flipped.split('').reverse().join('');
+
+                const binaryString = atob(base64Compressed);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+                const decompressedBuffer = await new Response(stream).arrayBuffer();
+                const rawString = new TextDecoder().decode(decompressedBuffer);
+
+                const parts = rawString.split('|');
+                if (parts.length < 9) {
+                    throw new Error("Corrupted or incomplete data payload!");
+                }
+
+                document.getElementById("resName").textContent = parts[0];
+                document.getElementById("resClass").textContent = parts[1] + " - " + parts[2];
+                document.getElementById("resGender").textContent = parts[3];
+                document.getElementById("resBlood").textContent = parts[4];
+                document.getElementById("resPhone").textContent = parts[5];
+                document.getElementById("resAilments").textContent = parts[6];
+                document.getElementById("resAllergies").textContent = parts[7];
+                document.getElementById("resMedication").textContent = parts[8];
+
+                document.getElementById("resultContainer").style.display = "block";
+            } catch (err) {
+                alert("Failed to parse EQR code: " + err.message);
+                closeReport();
+            }
         }
 
-        const scanner = new Html5QrcodeScanner("scanner", { fps: 15, qrbox: 250 });
-        scanner.render(onScanSuccess);
+        function closeReport() {
+            document.getElementById("resultContainer").style.display = "none";
+            document.getElementById("reader").style.display = "block";
+            startScanner();
+        }
+
+        window.addEventListener('load', startScanner);
     </script>
 </body>
 </html>
