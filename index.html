@@ -41,15 +41,62 @@
             margin-bottom: 30px;
         }
 
-        #reader {
+        #scanner-wrapper {
+            position: relative;
+            grid-column: 2;
             width: 100%;
             max-width: 450px;
-            height: 300px;
-            border: 1px solid #444;
+            overflow: hidden;
+            border: 2px solid #444;
+            background-color: #111;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s ease;
+        }
+
+        #scanner-wrapper.qr-detected {
+            transform: scale(1.08);
+            border-color: #fbff00;
+            box-shadow: 0 0 25px rgba(251, 255, 0, 0.6);
+        }
+
+        #reader {
+            width: 100%;
             background-color: #111;
             box-sizing: border-box;
-            overflow: hidden;
-            grid-column: 2;
+        }
+
+        .laser-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ff0033 20%, #ff3366 50%, #ff0033 80%, transparent);
+            box-shadow: 0 0 12px #ff0033, 0 0 4px #ffffff;
+            z-index: 10;
+            pointer-events: none;
+            top: 0%;
+            animation: scanLaser 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes scanLaser {
+            0% { top: 5%; }
+            100% { top: 92%; }
+        }
+
+        #reader button, #reader select {
+            background: #fbff00;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 4px;
+        }
+
+        #reader input[type="file"] {
+            color: white;
+            font-family: monospace;
+            margin: 10px 0;
         }
 
         .info-footer {
@@ -65,7 +112,6 @@
             margin-top: 10px;
         }
 
-        /* Result window style */
         #resultContainer {
             display: none;
             position: fixed;
@@ -134,7 +180,10 @@
             <div class="codename">codename: miku64</div>
         </div>
 
-        <div id="reader"></div>
+        <div id="scanner-wrapper">
+            <div class="laser-bar" id="laser"></div>
+            <div id="reader"></div>
+        </div>
     </div>
 
     <div class="info-footer">
@@ -145,9 +194,8 @@
         <div class="buggy-warning">This feature is buggy and unstable. To avoid problems, this feature has been disabled by the Administrator.</div>
     </div>
 
-    <!-- Medical Record View -->
     <div id="resultContainer">
-        <div class="result-title">🏥 STUDENT HEALTH RECORD</div>
+        <div class="result-title">STUDENT HEALTH RECORD</div>
         
         <div class="data-row"><span class="data-label">Name:</span><span class="data-val" id="resName">-</span></div>
         <div class="data-row"><span class="data-label">Class & Sec:</span><span class="data-val" id="resClass">-</span></div>
@@ -158,32 +206,59 @@
         <div class="data-row"><span class="data-label">Allergies:</span><span class="data-val" id="resAllergies">-</span></div>
         <div class="data-row"><span class="data-label">Medication:</span><span class="data-val" id="resMedication">-</span></div>
 
-        <div class="close-btn" onclick="closeReport()">🔄 SCAN ANOTHER</div>
+        <button class="close-btn" onclick="closeReport()">SCAN ANOTHER</button>
     </div>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
-        let html5QrCode;
+        let scanner = null;
 
-        function startScanner() {
-            if (typeof Html5Qrcode === 'undefined') return;
+        function playScanBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
 
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
 
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
-                async (decodedText) => {
-                    await html5QrCode.stop();
-                    document.getElementById("reader").style.display = "none";
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.log("Audio skipped");
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            playScanBeep();
+
+            const wrapper = document.getElementById("scanner-wrapper");
+            const laser = document.getElementById("laser");
+            
+            if(laser) laser.style.display = "none";
+            if(wrapper) wrapper.classList.add("qr-detected");
+
+            setTimeout(() => {
+                if (scanner) {
+                    scanner.clear().then(() => {
+                        parsePayload(decodedText);
+                    }).catch(error => {
+                        parsePayload(decodedText);
+                    });
+                } else {
                     parsePayload(decodedText);
-                },
-                (errorMessage) => {}
-            ).catch(err => {
-                console.error("Camera access error:", err);
-            });
+                }
+            }, 400);
+        }
+
+        function onScanFailure(error) {
+            // ignore scan misses
         }
 
         async function parsePayload(payload) {
@@ -229,11 +304,33 @@
 
         function closeReport() {
             document.getElementById("resultContainer").style.display = "none";
-            document.getElementById("reader").style.display = "block";
-            startScanner();
+            
+            const wrapper = document.getElementById("scanner-wrapper");
+            const laser = document.getElementById("laser");
+            if(wrapper) wrapper.classList.remove("qr-detected");
+            if(laser) laser.style.display = "block";
+
+            initScanner();
         }
 
-        window.addEventListener('load', startScanner);
+        function initScanner() {
+            try {
+                if (typeof Html5QrcodeScanner === 'undefined') {
+                    setTimeout(initScanner, 500);
+                    return;
+                }
+                scanner = new Html5QrcodeScanner(
+                    "reader", 
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    false
+                );
+                scanner.render(onScanSuccess, onScanFailure);
+            } catch(e) {
+                console.error("Scanner init error:", e);
+            }
+        }
+
+        window.addEventListener('load', initScanner);
     </script>
 </body>
 </html>
