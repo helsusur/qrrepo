@@ -2,53 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Full Screen Video Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome for Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Custom Scrollbars & Reset */
+    /* Reset & Viewport Constraints */
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
     
     body, html {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
       background-color: #000000;
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: manipulation;
     }
 
-    /* Glassmorphism Navigation Bar */
-    .glass-panel {
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    /* Flat Minimalist Panel (No Glassmorphism / No Heavy Blur / No Gloss) */
+    .flat-panel {
+      background: rgba(18, 18, 18, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    /* Auto-hide UI controls when inactive */
-    .controls-overlay {
-      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .user-inactive .controls-overlay {
-      opacity: 0;
-      transform: translate(-50%, 20px);
-      pointer-events: none;
-    }
-
-    /* Glow active video button */
+    /* Flat Active Button Style */
     .btn-active {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+      background-color: #2563eb !important;
       color: #ffffff !important;
-      border-color: rgba(96, 165, 250, 0.6) !important;
-      box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
+      border-color: #3b82f6 !important;
+    }
+
+    /* Orientation Warning Overlay (Shows when in Portrait) */
+    @media screen and (orientation: portrait) {
+      #portraitWarning {
+        display: flex !important;
+      }
     }
   </style>
 </head>
@@ -60,62 +54,127 @@
     <!-- Google Drive Video Embed Frame -->
     <iframe 
       id="videoPlayer" 
-      class="w-full h-full border-0 absolute inset-0"
+      class="w-full h-full border-0 absolute inset-0 z-0"
       src="https://drive.google.com/file/d/1hbMS9FfnBEEWa7X5-FXTTzlmgCWfndb7/preview" 
       allow="autoplay; fullscreen"
       allowfullscreen
       title="Google Drive Video Player">
     </iframe>
 
-    <!-- Floating Glassmorphism Controls Overlay -->
-    <div id="controlsOverlay" class="controls-overlay fixed bottom-6 left-1/2 -translate-x-1/2 z-50 glass-panel rounded-2xl px-4 py-3 flex items-center gap-3 md:gap-4 max-w-[95vw]">
-      
-      <!-- Part Selection Buttons -->
-      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
-        <button 
-          id="btn-part1"
-          onclick="switchPart('https://drive.google.com/file/d/1hbMS9FfnBEEWa7X5-FXTTzlmgCWfndb7/preview', 'btn-part1')"
-          class="btn-active flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 transition-all duration-200 whitespace-nowrap active:scale-95">
-          <i class="fa-solid fa-play text-xs"></i>
-          <span>Part 1</span>
-        </button>
-
-        <button 
-          id="btn-part2"
-          onclick="switchPart('https://drive.google.com/file/d/1ZCp5zupr6Sb6uEPl-9yTdfw5X3czDlub/preview', 'btn-part2')"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 transition-all duration-200 whitespace-nowrap active:scale-95">
-          <i class="fa-solid fa-play text-xs"></i>
-          <span>Part 2</span>
-        </button>
-
-        <button 
-          id="btn-part3"
-          onclick="switchPart('https://drive.google.com/file/d/1IzTtRY-UxyseP7YW3y_QYc5H8Na122kS/preview', 'btn-part3')"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 transition-all duration-200 whitespace-nowrap active:scale-95">
-          <i class="fa-solid fa-play text-xs"></i>
-          <span>Part 3</span>
-        </button>
-
-        <button 
-          id="btn-part4"
-          onclick="switchPart('https://drive.google.com/file/d/1yl5MqJbj2pA-ZJCaeJ3D2k1hYARgnj_n/preview', 'btn-part4')"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 transition-all duration-200 whitespace-nowrap active:scale-95">
-          <i class="fa-solid fa-play text-xs"></i>
-          <span>Part 4</span>
-        </button>
-      </div>
-
-      <!-- Divider -->
-      <div class="h-6 w-[1px] bg-white/20 hidden sm:block"></div>
-
-      <!-- Browser Fullscreen Toggle Button -->
+    <!-- ALWAYS VISIBLE Floating Action Buttons Bar (Bottom Right) -->
+    <div class="fixed bottom-6 right-6 z-[999] flex items-center gap-3">
+      <!-- Always Visible Exit Fullscreen Button -->
       <button 
-        onclick="toggleFullScreen()" 
-        title="Toggle True Fullscreen"
-        class="flex items-center justify-center p-2.5 rounded-xl text-white bg-blue-600 hover:bg-blue-500 border border-blue-400/30 transition-all duration-200 active:scale-95 shrink-0">
-        <i id="fullscreenIcon" class="fa-solid fa-expand text-base"></i>
+        id="fabExitFullscreenBtn"
+        onclick="exitFullScreenManual()"
+        title="Exit Fullscreen"
+        class="flex items-center gap-2 h-14 px-4 rounded-xl flat-panel text-gray-200 hover:text-white hover:bg-neutral-800 border border-neutral-700 active:scale-95 transition-all duration-150 cursor-pointer">
+        <i class="fa-solid fa-compress text-xl"></i>
+        <span class="text-xs font-semibold uppercase tracking-wider hidden sm:inline">Exit Fullscreen</span>
       </button>
 
+      <!-- Levitating Settings Floating Action Button (FAB) -->
+      <button 
+        id="fabSettingsBtn"
+        onclick="toggleControlModal()"
+        title="Open Video Settings & Controls"
+        class="flex items-center justify-center w-14 h-14 rounded-xl flat-panel text-gray-200 hover:text-white hover:bg-neutral-800 border border-neutral-700 active:scale-95 transition-all duration-150 cursor-pointer">
+        <i class="fa-solid fa-gear text-xl"></i>
+      </button>
+    </div>
+
+    <!-- Full-Screen Settings / Controls Modal Drawer -->
+    <div 
+      id="controlModal" 
+      class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 transition-opacity duration-200 p-4">
+      
+      <div class="flat-panel rounded-2xl w-full max-w-lg p-6 relative flex flex-col gap-6 text-white border border-neutral-800">
+        
+        <!-- Header & Exit Button -->
+        <div class="flex items-center justify-between border-b border-neutral-800 pb-4">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-sliders text-blue-500 text-lg"></i>
+            <h2 class="text-lg font-semibold tracking-wide">Video Controls</h2>
+          </div>
+          
+          <!-- Exit Button inside Modal -->
+          <button 
+            onclick="toggleControlModal()"
+            class="flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-800 hover:bg-neutral-700 active:scale-95 text-neutral-400 hover:text-white border border-neutral-700 transition-all">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Touch-Friendly Video Part Selectors -->
+        <div class="flex flex-col gap-3">
+          <label class="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">Select Part</label>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <button 
+              id="btn-part1"
+              onclick="switchPart('https://drive.google.com/file/d/1hbMS9FfnBEEWa7X5-FXTTzlmgCWfndb7/preview', 'btn-part1')"
+              class="btn-active flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
+              <i class="fa-solid fa-play text-xs"></i>
+              <span>Part 1</span>
+            </button>
+
+            <button 
+              id="btn-part2"
+              onclick="switchPart('https://drive.google.com/file/d/1ZCp5zupr6Sb6uEPl-9yTdfw5X3czDlub/preview', 'btn-part2')"
+              class="flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
+              <i class="fa-solid fa-play text-xs"></i>
+              <span>Part 2</span>
+            </button>
+
+            <button 
+              id="btn-part3"
+              onclick="switchPart('https://drive.google.com/file/d/1IzTtRY-UxyseP7YW3y_QYc5H8Na122kS/preview', 'btn-part3')"
+              class="flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
+              <i class="fa-solid fa-play text-xs"></i>
+              <span>Part 3</span>
+            </button>
+
+            <button 
+              id="btn-part4"
+              onclick="switchPart('https://drive.google.com/file/d/1yl5MqJbj2pA-ZJCaeJ3D2k1hYARgnj_n/preview', 'btn-part4')"
+              class="flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
+              <i class="fa-solid fa-play text-xs"></i>
+              <span>Part 4</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Display Toggles -->
+        <div class="flex flex-col gap-3 pt-2">
+          <label class="text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-1">Display Options</label>
+          <button 
+            onclick="toggleFullScreen()" 
+            class="flex items-center justify-center gap-3 h-12 rounded-xl text-white font-semibold bg-blue-600 hover:bg-blue-500 border border-blue-500 active:scale-95 transition-all w-full">
+            <i id="fullscreenIcon" class="fa-solid fa-expand text-base"></i>
+            <span id="fullscreenText">Toggle Fullscreen</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Portrait Orientation Warning Overlay -->
+    <div id="portraitWarning" class="fixed inset-0 z-[2000] hidden flex-col items-center justify-center bg-black/95 text-white p-6 text-center">
+      <i class="fa-solid fa-rotate text-4xl text-blue-500 mb-4"></i>
+      <h2 class="text-xl font-bold mb-2">Please Rotate Your Device</h2>
+      <p class="text-neutral-400 max-w-sm text-sm">This video player is optimized for landscape orientation. Turn your phone sideways for the best fullscreen experience.</p>
+    </div>
+
+    <!-- Initial Fullscreen / Landscape Interaction Prompt -->
+    <div 
+      id="startOverlay" 
+      onclick="startExperience()" 
+      class="fixed inset-0 z-[3000] flex flex-col items-center justify-center bg-black/95 text-white p-6 text-center cursor-pointer">
+      <div class="flex items-center justify-center w-20 h-20 rounded-full bg-blue-600 mb-4 animate-pulse">
+        <i class="fa-solid fa-expand text-3xl"></i>
+      </div>
+      <h2 class="text-2xl font-bold mb-2">Tap Anywhere to Start</h2>
+      <p class="text-neutral-400 max-w-sm text-sm">Enables fullscreen landscape playback and opens video controls.</p>
     </div>
 
   </div>
@@ -123,86 +182,141 @@
   <script>
     const player = document.getElementById('videoPlayer');
     const container = document.getElementById('videoContainer');
+    const controlModal = document.getElementById('controlModal');
+    const startOverlay = document.getElementById('startOverlay');
     const fullscreenIcon = document.getElementById('fullscreenIcon');
-    let activityTimeout = null;
+    const fullscreenText = document.getElementById('fullscreenText');
 
-    // Switch active video source and update visual active state
+    // On page load, auto-open control modal & setup initial trigger
+    window.addEventListener('DOMContentLoaded', () => {
+      // Ensure settings modal is visible on load
+      controlModal.classList.remove('hidden');
+      controlModal.classList.add('flex');
+    });
+
+    // Initial user interaction handler to bypass browser autoplay/fullscreen blocks
+    async function startExperience() {
+      if (startOverlay) {
+        startOverlay.style.display = 'none';
+      }
+      await enforceLandscapeAndFullscreen();
+    }
+
+    // Toggle Modal Controls
+    function toggleControlModal() {
+      if (controlModal.classList.contains('hidden')) {
+        controlModal.classList.remove('hidden');
+        controlModal.classList.add('flex');
+      } else {
+        controlModal.classList.remove('flex');
+        controlModal.classList.add('hidden');
+      }
+    }
+
+    // Switch active video source
     function switchPart(url, buttonId) {
-      // Update iframe video source
       player.src = url;
 
-      // Update button styling
-      const buttons = document.querySelectorAll('#controlsOverlay button[id^="btn-part"]');
+      // Update button visual styles
+      const buttons = document.querySelectorAll('#controlModal button[id^="btn-part"]');
       buttons.forEach(btn => {
         btn.classList.remove('btn-active');
-        btn.classList.add('bg-slate-800/80', 'text-gray-300');
+        btn.classList.add('bg-neutral-800', 'text-neutral-300');
       });
 
       const activeButton = document.getElementById(buttonId);
       if (activeButton) {
         activeButton.classList.add('btn-active');
-        activeButton.classList.remove('bg-slate-800/80', 'text-gray-300');
+        activeButton.classList.remove('bg-neutral-800', 'text-neutral-300');
+      }
+
+      // Lock orientation & enter fullscreen on video switch
+      enforceLandscapeAndFullscreen();
+
+      // Close settings modal after selection
+      toggleControlModal();
+    }
+
+    // Attempt to lock landscape orientation & request browser fullscreen
+    async function enforceLandscapeAndFullscreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        try {
+          if (container.requestFullscreen) {
+            await container.requestFullscreen();
+          } else if (container.webkitRequestFullscreen) {
+            await container.webkitRequestFullscreen();
+          }
+        } catch (e) {
+          console.warn("Fullscreen request blocked or not supported:", e);
+        }
+      }
+
+      if (screen.orientation && screen.orientation.lock) {
+        try {
+          await screen.orientation.lock('landscape');
+        } catch (e) {
+          console.warn("Landscape orientation lock not supported or denied:", e);
+        }
       }
     }
 
-    // Toggle browser level full screen mode
+    // Toggle Fullscreen Manual Button
     function toggleFullScreen() {
-      if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-        if (container.requestFullscreen) {
-          container.requestFullscreen();
-        } else if (container.msRequestFullscreen) {
-          container.msRequestFullscreen();
-        } else if (container.mozRequestFullScreen) {
-          container.mozRequestFullScreen();
-        } else if (container.webkitRequestFullscreen) {
-          container.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-        }
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        enforceLandscapeAndFullscreen();
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
+        exitFullScreenManual();
+      }
+    }
+
+    // Direct Exit Fullscreen Handler
+    async function exitFullScreenManual() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            await document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            await document.msExitFullscreen();
+          }
+        } catch (e) {
+          console.warn("Exit fullscreen error:", e);
+        }
+      }
+
+      // Unlock screen orientation if previously locked
+      if (screen.orientation && screen.orientation.unlock) {
+        try {
+          screen.orientation.unlock();
+        } catch (e) {
+          console.warn("Orientation unlock failed:", e);
         }
       }
     }
 
-    // Update Fullscreen Button Icon on state change
+    // Fullscreen state listener
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     function handleFullscreenChange() {
-      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+      const fabExitBtn = document.getElementById('fabExitFullscreenBtn');
+
       if (isFullscreen) {
         fullscreenIcon.classList.remove('fa-expand');
         fullscreenIcon.classList.add('fa-compress');
+        fullscreenText.textContent = "Exit Fullscreen";
+        if (fabExitBtn) fabExitBtn.classList.remove('opacity-50');
       } else {
         fullscreenIcon.classList.remove('fa-compress');
         fullscreenIcon.classList.add('fa-expand');
+        fullscreenText.textContent = "Enter Fullscreen";
+        if (fabExitBtn) fabExitBtn.classList.add('opacity-50');
       }
     }
-
-    // Auto-hide control bar when idle
-    function handleUserActivity() {
-      document.body.classList.remove('user-inactive');
-      clearTimeout(activityTimeout);
-      activityTimeout = setTimeout(() => {
-        document.body.classList.add('user-inactive');
-      }, 3500);
-    }
-
-    // Event listeners for user activity
-    window.addEventListener('mousemove', handleUserActivity);
-    window.addEventListener('touchstart', handleUserActivity);
-    window.addEventListener('keydown', handleUserActivity);
-
-    // Initial timeout trigger
-    handleUserActivity();
   </script>
 </body>
 </html>
