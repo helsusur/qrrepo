@@ -78,8 +78,9 @@
         id="fabSettingsBtn"
         onclick="toggleControlModal()"
         title="Open Video Settings & Controls"
-        class="flex items-center justify-center w-14 h-14 rounded-xl flat-panel text-gray-200 hover:text-white hover:bg-neutral-800 border border-neutral-700 active:scale-95 transition-all duration-150 cursor-pointer">
+        class="flex items-center gap-2 h-14 px-4 rounded-xl flat-panel text-gray-200 hover:text-white hover:bg-neutral-800 border border-neutral-700 active:scale-95 transition-all duration-150 cursor-pointer">
         <i class="fa-solid fa-gear text-xl"></i>
+        <span id="settingsBtnLabel" class="text-xs font-semibold uppercase tracking-wider">Select Part number (1)</span>
       </button>
     </div>
 
@@ -112,7 +113,7 @@
           <div class="grid grid-cols-2 gap-3">
             <button 
               id="btn-part1"
-              onclick="switchPart('https://drive.google.com/file/d/1hbMS9FfnBEEWa7X5-FXTTzlmgCWfndb7/preview', 'btn-part1')"
+              onclick="switchPart('https://drive.google.com/file/d/1hbMS9FfnBEEWa7X5-FXTTzlmgCWfndb7/preview', 'btn-part1', 1)"
               class="btn-active flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
               <i class="fa-solid fa-play text-xs"></i>
               <span>Part 1</span>
@@ -120,7 +121,7 @@
 
             <button 
               id="btn-part2"
-              onclick="switchPart('https://drive.google.com/file/d/1ZCp5zupr6Sb6uEPl-9yTdfw5X3czDlub/preview', 'btn-part2')"
+              onclick="switchPart('https://drive.google.com/file/d/1ZCp5zupr6Sb6uEPl-9yTdfw5X3czDlub/preview', 'btn-part2', 2)"
               class="flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
               <i class="fa-solid fa-play text-xs"></i>
               <span>Part 2</span>
@@ -128,7 +129,7 @@
 
             <button 
               id="btn-part3"
-              onclick="switchPart('https://drive.google.com/file/d/1IzTtRY-UxyseP7YW3y_QYc5H8Na122kS/preview', 'btn-part3')"
+              onclick="switchPart('https://drive.google.com/file/d/1IzTtRY-UxyseP7YW3y_QYc5H8Na122kS/preview', 'btn-part3', 3)"
               class="flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
               <i class="fa-solid fa-play text-xs"></i>
               <span>Part 3</span>
@@ -136,7 +137,7 @@
 
             <button 
               id="btn-part4"
-              onclick="switchPart('https://drive.google.com/file/d/1yl5MqJbj2pA-ZJCaeJ3D2k1hYARgnj_n/preview', 'btn-part4')"
+              onclick="switchPart('https://drive.google.com/file/d/1yl5MqJbj2pA-ZJCaeJ3D2k1hYARgnj_n/preview', 'btn-part4', 4)"
               class="flex items-center justify-center gap-3 h-12 rounded-xl text-sm font-semibold text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 active:scale-95 transition-all">
               <i class="fa-solid fa-play text-xs"></i>
               <span>Part 4</span>
@@ -186,6 +187,7 @@
     const startOverlay = document.getElementById('startOverlay');
     const fullscreenIcon = document.getElementById('fullscreenIcon');
     const fullscreenText = document.getElementById('fullscreenText');
+    const settingsBtnLabel = document.getElementById('settingsBtnLabel');
 
     // On page load, auto-open control modal & setup initial trigger
     window.addEventListener('DOMContentLoaded', () => {
@@ -213,9 +215,14 @@
       }
     }
 
-    // Switch active video source
-    function switchPart(url, buttonId) {
+    // Switch active video source and update label text
+    function switchPart(url, buttonId, partNum) {
       player.src = url;
+
+      // Update levitating settings button label
+      if (settingsBtnLabel) {
+        settingsBtnLabel.textContent = `Select Part number (${partNum})`;
+      }
 
       // Update button visual styles
       const buttons = document.querySelectorAll('#controlModal button[id^="btn-part"]');
