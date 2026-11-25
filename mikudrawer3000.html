@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Strictly disable user scaling and zooming on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Digital Picture Frame Lock</title>
+    <!-- Load Tailwind CSS for clean, responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base resets and strict gesture/scroll locking */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* Ensure image cannot be dragged, selected, or interacted with directly */
+        #frame-image {
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-user-drag: none;
+            touch-action: none;
+        }
+
+        /* Smooth SVG ring progress transition */
+        #unlock-progress-circle {
+            transition: stroke-dashoffset 0.05s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="bg-black text-white relative w-full h-full overflow-hidden">
+
+    <!-- Hidden File Input for Image Selection -->
+    <input type="file" id="file-input" accept="image/*" class="hidden" />
+
+    <!-- 1. START / UNLOCKED SETUP SCREEN -->
+    <!-- Covers the screen initially or when unlocked so a single user gesture opens the file picker & enters fullscreen -->
+    <div id="setup-screen" class="fixed inset-0 z-30 flex flex-col items-center justify-center bg-neutral-950/95 backdrop-blur-md p-6 text-center transition-opacity duration-300">
+        
+        <!-- Main Tap Target Area (Tapping anywhere on the background/card opens picker) -->
+        <div id="start-trigger" class="w-full max-w-md flex flex-col items-center justify-center p-8 rounded-3xl bg-neutral-900/90 border border-neutral-800 shadow-2xl cursor-pointer active:scale-[0.99] transition-transform">
+            <!-- Photo Frame Icon -->
+            <div class="w-20 h-20 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-6 text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                    <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3">
+                Digital Picture Frame
+            </h1>
+            <p class="text-neutral-400 text-sm sm:text-base leading-relaxed mb-8">
+                Tap anywhere here to choose a photo and lock the screen in full-screen display mode.
+            </p>
+
+            <button type="button" class="w-full py-4 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-base shadow-lg shadow-indigo-600/25 transition-colors flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Select Photo &amp; Start Frame</span>
+            </button>
+        </div>
+
+        <!-- Display Fit Options & Resume Controls (Visible below main card) -->
+        <div class="mt-6 w-full max-w-md flex flex-col gap-3">
+            <!-- Fit Mode Selector -->
+            <div class="flex items-center justify-between bg-neutral-900/80 border border-neutral-800/80 rounded-2xl p-3 px-4">
+                <span class="text-sm text-neutral-300 font-medium">Image Fit</span>
+                <div class="flex bg-neutral-950 p-1 rounded-xl border border-neutral-800">
+                    <button type="button" id="fit-contain-btn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-neutral-800 text-white transition-colors">
+                        Contain (Full Photo)
+                    </button>
+                    <button type="button" id="fit-cover-btn" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-neutral-400 hover:text-white transition-colors">
+                        Cover (Fill Screen)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resume Current Photo Button (Shown only if an image is already loaded) -->
+            <button type="button" id="resume-lock-btn" class="hidden w-full py-3.5 px-5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium text-sm border border-neutral-700 transition-colors flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                </svg>
+                <span>Re-Lock Current Photo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. LOCKED FULLSCREEN PICTURE FRAME CONTAINER -->
+    <main id="frame-container" class="fixed inset-0 z-10 w-full h-full bg-black flex items-center justify-center overflow-hidden">
+        <!-- Displayed Image -->
+        <img id="frame-image" src="" alt="Framed Display" draggable="false" class="w-full h-full object-contain select-none hidden" />
+
+        <!-- Subtle Fullscreen Re-entry Banner (Shown only if browser fullscreen was exited via Escape/gesture while still locked) -->
+        <div id="fullscreen-warning" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full bg-neutral-900/85 border border-neutral-700/70 backdrop-blur-md text-xs text-neutral-200 shadow-lg pointer-events-none flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span>Tap anywhere to restore fullscreen</span>
+        </div>
+
+        <!-- 3. 10-SECOND HOLD-TO-UNLOCK CONTROL (Bottom-Right Corner) -->
+        <div id="unlock-wrapper" class="hidden fixed bottom-5 right-5 z-20 flex items-center gap-3">
+            <!-- Countdown Status Pill (Appears while holding) -->
+            <div id="unlock-status-pill" class="opacity-0 translate-x-2 pointer-events-none transition-all duration-200 px-3.5 py-2 rounded-full bg-neutral-900/90 border border-neutral-700/80 backdrop-blur-md text-xs font-medium text-white shadow-xl whitespace-nowrap">
+                Hold <span id="countdown-seconds" class="font-bold text-indigo-400">10.0s</span> to unlock...
+            </div>
+
+            <!-- Hold Button with Circular Progress Ring -->
+            <button type="button" id="unlock-btn" aria-label="Hold 10 seconds to unlock" class="relative w-14 h-14 rounded-full bg-neutral-900/50 hover:bg-neutral-900/80 active:bg-neutral-900 border border-white/15 backdrop-blur-sm flex items-center justify-center text-white/60 hover:text-white active:text-white transition-all shadow-lg cursor-pointer touch-none">
+                <!-- Circular Progress SVG -->
+                <svg class="absolute inset-0 w-full h-full" viewBox="0 0 56 56">
+                    <!-- Background Track -->
+                    <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3"></circle>
+                    <!-- Active Progress Ring -->
+                    <circle id="unlock-progress-circle" cx="28" cy="28" r="24" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-dasharray="150.796" stroke-dashoffset="150.796"></circle>
+                </svg>
+
+                <!-- Lock Icon -->
+                <svg id="lock-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 relative z-10 transition-transform duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                </svg>
+            </button>
+        </div>
+    </main>
+
+    <!-- Non-blocking Toast Message Box (Replaces alert()) -->
+    <div id="toast-box" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300 px-4 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-xs sm:text-sm font-medium shadow-2xl">
+        Message
+    </div>
+
+    <script>
+        /**
+         * Digital Picture Frame Display Lock
+         * Locks a selected image in fullscreen mode with zero pan/zoom/scroll
+         * until the corner button is held continuously for 10 seconds.
+         */
+        (function () {
+            // DOM Elements
+            const fileInput = document.getElementById('file-input');
+            const setupScreen = document.getElementById('setup-screen');
+            const startTrigger = document.getElementById('start-trigger');
+            const fitContainBtn = document.getElementById('fit-contain-btn');
+            const fitCoverBtn = document.getElementById('fit-cover-btn');
+            const resumeLockBtn = document.getElementById('resume-lock-btn');
+
+            const frameContainer = document.getElementById('frame-container');
+            const frameImage = document.getElementById('frame-image');
+            const fullscreenWarning = document.getElementById('fullscreen-warning');
+
+            const unlockWrapper = document.getElementById('unlock-wrapper');
+            const unlockBtn = document.getElementById('unlock-btn');
+            const unlockProgressCircle = document.getElementById('unlock-progress-circle');
+            const unlockStatusPill = document.getElementById('unlock-status-pill');
+            const countdownSeconds = document.getElementById('countdown-seconds');
+            const lockIcon = document.getElementById('lock-icon');
+            const toastBox = document.getElementById('toast-box');
+
+            // Application State
+            let isLocked = false;
+            let hasImage = false;
+            let currentObjectUrl = null;
+            let imageFitMode = 'contain'; // 'contain' or 'cover'
+            let wakeLockSentinel = null;
+
+            // 10-Second Hold Timer State
+            const HOLD_DURATION_MS = 10000; // 10 seconds
+            const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 24; // r = 24 -> ~150.796
+            let holdStartTime = null;
+            let holdAnimationFrame = null;
+            let isHolding = false;
+
+            /**
+             * Display a subtle, non-blocking toast message
+             */
+            let toastTimeout = null;
+            function showToast(message) {
+                toastBox.textContent = message;
+                toastBox.classList.remove('opacity-0');
+                clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toastBox.classList.add('opacity-0');
+                }, 3000);
+            }
+
+            /**
+             * Request Fullscreen safely across browser prefixes
+             */
+            async function enterFullscreen() {
+                try {
+                    const elem = document.documentElement;
+                    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                        if (elem.requestFullscreen) {
+                            await elem.requestFullscreen({ navigationUI: 'hide' });
+                        } else if (elem.webkitRequestFullscreen) {
+                            await elem.webkitRequestFullscreen();
+                        }
+                    }
+                    fullscreenWarning.classList.add('hidden');
+                } catch (err) {
+                    // Browsers may block fullscreen if gesture context expired during file dialog;
+                    // tapping anywhere on the locked screen will immediately re-engage it.
+                    if (isLocked) {
+                        fullscreenWarning.classList.remove('hidden');
+                    }
+                }
+            }
+
+            /**
+             * Exit Fullscreen safely
+             */
+            async function exitFullscreen() {
+                try {
+                    if (document.fullscreenElement || document.webkitFullscreenElement) {
+                        if (document.exitFullscreen) {
+                            await document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            await document.webkitExitFullscreen();
+                        }
+                    }
+                } catch (err) {
+                    // Ignore if already exited
+                }
+            }
+
+            /**
+             * Screen Wake Lock API: Keep screen awake while acting as a digital picture frame
+             */
+            async function requestWakeLock() {
+                if ('wakeLock' in navigator) {
+                    try {
+                        wakeLockSentinel = await navigator.wakeLock.request('screen');
+                        wakeLockSentinel.addEventListener('release', () => {
+                            wakeLockSentinel = null;
+                        });
+                    } catch (err) {
+                        // Wake lock might fail on low battery or unsupported webviews
+                    }
+                }
+            }
+
+            async function releaseWakeLock() {
+                if (wakeLockSentinel) {
+                    try {
+                        await wakeLockSentinel.release();
+                        wakeLockSentinel = null;
+                    } catch (err) {
+                        // Ignore release errors
+                    }
+                }
+            }
+
+            // Re-acquire wake lock automatically if page becomes visible again while locked
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && isLocked) {
+                    requestWakeLock();
+                }
+            });
+
+            /**
+             * Lock the frame display
+             */
+            function lockFrame() {
+                if (!hasImage) return;
+                isLocked = true;
+
+                // Hide setup screen, show image & unlock button
+                setupScreen.classList.add('opacity-0', 'pointer-events-none');
+                frameImage.classList.remove('hidden');
+                unlockWrapper.classList.remove('hidden');
+
+                // Apply chosen fit mode
+                frameImage.classList.remove('object-contain', 'object-cover');
+                frameImage.classList.add(imageFitMode === 'cover' ? 'object-cover' : 'object-contain');
+
+                // Attempt fullscreen & wake lock
+                enterFullscreen();
+                requestWakeLock();
+            }
+
+            /**
+             * Unlock the frame display after 10s hold
+             */
+            function unlockFrame() {
+                isLocked = false;
+                resetHoldProgress();
+
+                // Exit fullscreen and release screen wake lock
+                exitFullscreen();
+                releaseWakeLock();
+
+                // Show setup overlay & hide unlock button
+                fullscreenWarning.classList.add('hidden');
+                unlockWrapper.classList.add('hidden');
+                setupScreen.classList.remove('opacity-0', 'pointer-events-none');
+
+                if (hasImage) {
+                    resumeLockBtn.classList.remove('hidden');
+                }
+
+                showToast('Frame unlocked');
+            }
+
+            /**
+             * Handle Image File Selection
+             */
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    showToast('Please select a valid image file.');
+                    return;
+                }
+
+                // Revoke previous object URL to prevent memory leaks
+                if (currentObjectUrl) {
+                    URL.revokeObjectURL(currentObjectUrl);
+                }
+
+                currentObjectUrl = URL.createObjectURL(file);
+                frameImage.src = currentObjectUrl;
+                hasImage = true;
+
+                // Reset input value so selecting the same file again triggers 'change'
+                fileInput.value = '';
+
+                // Immediately engage lock & fullscreen
+                lockFrame();
+            });
+
+            /**
+             * Trigger File Picker from Setup Screen
+             */
+            startTrigger.addEventListener('click', () => {
+                // Attempt fullscreen early on user gesture as well
+                enterFullscreen();
+                fileInput.click();
+            });
+
+            /**
+             * Attempt automatic file picker trigger on window load
+             * (Modern browsers usually block this without a click, so the setup screen acts as the immediate fallback)
+             */
+            window.addEventListener('load', () => {
+                try {
+                    fileInput.click();
+                } catch (e) {
+                    // Blocked by browser security policy; user will tap the full-screen setup card
+                }
+            });
+
+            /**
+             * Fit Mode Toggle Controls
+             */
+            fitContainBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                imageFitMode = 'contain';
+                fitContainBtn.classList.add('bg-neutral-800', 'text-white');
+                fitContainBtn.classList.remove('text-neutral-400');
+                fitCoverBtn.classList.remove('bg-neutral-800', 'text-white');
+                fitCoverBtn.classList.add('text-neutral-400');
+            });
+
+            fitCoverBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                imageFitMode = 'cover';
+                fitCoverBtn.classList.add('bg-neutral-800', 'text-white');
+                fitCoverBtn.classList.remove('text-neutral-400');
+                fitContainBtn.classList.remove('bg-neutral-800', 'text-white');
+                fitContainBtn.classList.add('text-neutral-400');
+            });
+
+            /**
+             * Re-Lock Current Photo Button
+             */
+            resumeLockBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                lockFrame();
+            });
+
+            /**
+             * Monitor Fullscreen Changes
+             * If the user exits fullscreen (e.g., via Escape key or system swipe) while still locked,
+             * display a subtle prompt and re-enter fullscreen on any tap on the screen.
+             */
+            function handleFullscreenChange() {
+                const isFullscreenNow = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+                if (isLocked && !isFullscreenNow) {
+                    fullscreenWarning.classList.remove('hidden');
+                } else {
+                    fullscreenWarning.classList.add('hidden');
+                }
+            }
+
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+            // Re-trigger fullscreen on any tap on the frame container while locked
+            frameContainer.addEventListener('pointerdown', (e) => {
+                if (!isLocked) return;
+                // Ignore if pressing the unlock button
+                if (unlockBtn.contains(e.target)) return;
+
+                const isFullscreenNow = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+                if (!isFullscreenNow) {
+                    enterFullscreen();
+                }
+            });
+
+            /**
+             * 10-Second Hold-to-Unlock Logic
+             */
+            function updateHoldProgress(timestamp) {
+                if (!isHolding) return;
+
+                if (!holdStartTime) {
+                    holdStartTime = timestamp;
+                }
+
+                const elapsed = timestamp - holdStartTime;
+                const progress = Math.min(elapsed / HOLD_DURATION_MS, 1);
+                const remainingSeconds = Math.max(0, (HOLD_DURATION_MS - elapsed) / 1000);
+
+                // Update SVG circle dashoffset
+                const offset = CIRCLE_CIRCUMFERENCE * (1 - progress);
+                unlockProgressCircle.style.strokeDashoffset = offset;
+
+                // Update text readout
+                countdownSeconds.textContent = remainingSeconds.toFixed(1) + 's';
+
+                if (progress >= 1) {
+                    // Completed full 10 seconds!
+                    isHolding = false;
+                    unlockFrame();
+                } else {
+                    holdAnimationFrame = requestAnimationFrame(updateHoldProgress);
+                }
+            }
+
+            function startHold(e) {
+                if (!isLocked) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (isHolding) return;
+                isHolding = true;
+                holdStartTime = null;
+
+                // Show status pill and scale lock icon slightly
+                unlockStatusPill.classList.remove('opacity-0', 'translate-x-2');
+                lockIcon.classList.add('scale-110', 'text-indigo-400');
+
+                holdAnimationFrame = requestAnimationFrame(updateHoldProgress);
+            }
+
+            function resetHoldProgress() {
+                isHolding = false;
+                holdStartTime = null;
+                if (holdAnimationFrame) {
+                    cancelAnimationFrame(holdAnimationFrame);
+                    holdAnimationFrame = null;
+                }
+
+                // Reset SVG ring and status pill immediately
+                unlockProgressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
+                unlockStatusPill.classList.add('opacity-0', 'translate-x-2');
+                lockIcon.classList.remove('scale-110', 'text-indigo-400');
+                countdownSeconds.textContent = '10.0s';
+            }
+
+            // Bind pointer/mouse/touch events to the unlock button
+            unlockBtn.addEventListener('pointerdown', startHold);
+            unlockBtn.addEventListener('pointerup', resetHoldProgress);
+            unlockBtn.addEventListener('pointerleave', resetHoldProgress);
+            unlockBtn.addEventListener('pointercancel', resetHoldProgress);
+
+            /**
+             * Strict Touch, Pinch-Zoom, Wheel, Drag, and Context-Menu Prevention
+             */
+            const blockGesture = (e) => {
+                // Allow normal interaction on the setup screen buttons when unlocked
+                if (!isLocked && setupScreen.contains(e.target)) {
+                    return;
+                }
+                e.preventDefault();
+            };
+
+            // Block pinch-zoom, multi-touch, and pan gestures
+            document.addEventListener('touchstart', (e) => {
+                if (isLocked || e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                if (isLocked || e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Block Safari/iOS gesture events
+            document.addEventListener('gesturestart', blockGesture, { passive: false });
+            document.addEventListener('gesturechange', blockGesture, { passive: false });
+            document.addEventListener('gestureend', blockGesture, { passive: false });
+
+            // Block mouse wheel & trackpad pinch-to-zoom (Ctrl + Wheel)
+            document.addEventListener('wheel', (e) => {
+                if (isLocked || e.ctrlKey) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Block image dragging and right-click / long-press context menu
+            document.addEventListener('dragstart', (e) => e.preventDefault(), { passive: false });
+            document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
+
+            // Block keyboard zoom shortcuts (Ctrl/Cmd + '+', '-', '0') while locked
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
